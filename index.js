@@ -48,8 +48,26 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', (req, res) => {
+  const username = req.body.username;
   
+  Log.findOne({ username: username }).then(( data ) => {
+    if( data ){
+      res.json({
+        username: data.username,
+        _id: data._id
+      });
+    } else {
+      let newUser = new Log( { username: username } );
+
+      newUser.save().then(( data ) => {
+        res.json({
+          username: data.username,
+          _id: data._id
+        });
+      }).catch(( err ) => console.log( err ));
+    }
+  }).catch(( err ) => console.log( err ))
 });
 
 app.post('/api/users/:_id/exercises', (req, res) => {
