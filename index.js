@@ -31,15 +31,17 @@ const logSchema = new Schema({
   },
   count: {
     type: Number,
+    default: 0
   },
   log: {
     type: [{
+      _id: false,
       description: String,
       duration: Number,
       date: String
     }]
   },
-});
+}, { versionKey: false });
 const Log = mongoose.model( "userLog", logSchema );
 
 app.use(cors())
@@ -51,14 +53,14 @@ app.get('/', (req, res) => {
 app.post('/api/users', (req, res) => {
   const username = req.body.username;
   
-  Log.findOne({ username: username }).then(( data ) => {
+  Log.findOne({ username }).then(( data ) => {
     if( data ){
       res.json({
         username: data.username,
         _id: data._id
       });
     } else {
-      let newUser = new Log( { username: username } );
+      let newUser = new Log( { username } );
 
       newUser.save().then(( data ) => {
         res.json({
@@ -67,12 +69,34 @@ app.post('/api/users', (req, res) => {
         });
       }).catch(( err ) => console.log( err ));
     }
-  }).catch(( err ) => console.log( err ))
+  }).catch(( err ) => console.log( err ));
 });
 
 app.post('/api/users/:_id/exercises', (req, res) => {
+  const _id = req.params._id;
+  const date = new Date(req.body.date).toDateString();
+  const description = req.body.description;
+  const duration = +req.body.duration;
 
+  Log.findById({ _id }).then(( data ) => {
+    data.count += 1;
+    data.log.push({
+      description,
+      duration,
+      date
+    });
 
+    data.save().then(( data ) => {
+      res.json({
+        _id: data._id,
+        username: data.username,
+        date: data.log[ data.count-1 ].date,
+        duration: data.log[ data.count-1 ].duration,
+        description: data.log[ data.count-1 ].description
+      });
+    }).catch(( err ) => console.log( err ));
+
+  }).catch(( err ) => console.log( err ));
 });
 
 app.get('/api/users/:_id/logs?[from][&to][&limit]', (req, res) => {
