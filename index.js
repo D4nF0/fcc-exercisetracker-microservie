@@ -98,7 +98,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
   }).catch(( err ) => console.log( err ));
 });
 
-app.get('/api/users/:_id/logs', async (req, res) => {
+app.get('/api/users/:_id/logs', (req, res) => {
   const { limit, from, to } = req.query;
   const _id = req.params._id;
   
@@ -134,7 +134,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
         from,
         to,
         limit,
-        count: log.length - 1,
+        count: log.length,
         log
       });
 
@@ -142,6 +142,17 @@ app.get('/api/users/:_id/logs', async (req, res) => {
 
   }).catch(( err ) => console.log( err ));
 
+});
+
+app.get('/api/users', (req, res) => {
+  User.find().then(( userData ) => {
+    if( !userData ){
+      res.send("No user found.")
+    } else {
+      res.json( userData );
+    }
+
+  }).catch(( err ) => console.log( err ))
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
