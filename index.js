@@ -21,8 +21,8 @@ mongoose.connect( process.env.MONGO_URI ).then( () => {
   console.log(err);
 });
 const db = mongoose.connection;
-
 const Schema = mongoose.Schema;
+
 const userSchema = new Schema({
   username: {
     type: String, 
@@ -33,7 +33,6 @@ const userSchema = new Schema({
 const User = mongoose.model( "user", userSchema);
 
 const exerciseSchema = new Schema({
-  _id: false,
   userId: String,
   description: String,
   duration: Number,
@@ -75,26 +74,26 @@ app.post('/api/users/:_id/exercises', (req, res) => {
   const description = req.body.description;
   const duration = +req.body.duration;
 
-  Log.findById({ _id }).then(( data ) => {
-    if( !data ){
+  User.findById({ _id }).then(( userData ) => {
+    if( !userData ){
       res.send("Could not find the user.");
       return;
     } 
 
-    data.count += 1;
-    data.log.push({
+    let newExercise = new Exercise({
+      userId: _id,
       description,
       duration,
       date
     });
 
-    data.save().then(( data ) => {
+    newExercise.save().then(( exerciseData ) => {
       res.json({
-        _id: data._id,
-        username: data.username,
-        date: data.log[ data.count-1 ].date.toDateString(),
-        duration: data.log[ data.count-1 ].duration,
-        description: data.log[ data.count-1 ].description
+        _id: exerciseData.userId,
+        username: userData.username,
+        date: exerciseData.date.toDateString(),
+        duration: exerciseData.duration,
+        description: exerciseData.description
       });
     }).catch(( err ) => console.log( err ));
 
@@ -102,71 +101,6 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 });
 
 app.get('/api/users/:_id/logs', async (req, res) => {
-
-/*  
-  const { limit, from, to } = req.query;
-  const _id = req.params._id;
-
-  Log.findById({ _id }).then(( data ) => {
-    if( !data ){
-      res.send("Could not find the user.")      
-      return;
-    }
-    console.log( data );
-    const log = data.log;
-    console.log( log );
-    log.map(( e ) => {
-      console.log( e );
-
-    })
-
-
-  }).catch(( err ) => console.log( err ));
-*/
-
-
-  const _id = req.params._id;
-  const user = await Log.findById({ _id });
-  if( !user ){
-    res.send("Could not find the user.");
-    return;
-  };
-
-  const { limit, from, to } = req.query;
-  let dateObj = {};
-  let filter = {
-    _id,
-    log: [{}]
-  };
-
-  if( from ) dateObj["$gte"] = new Date(from);
-  if( to ) dateObj["$lte"] = new Date(to);
-  if( from || to ) filter.log.date = dateObj;
-  console.log( filter );
-
-  const data = await Log.find( filter ).limit( +limit ?? 100 ).exec();
-  console.log( data );
-
-  const log = data.map( e => {
-    console.log( e );
-
-    return {
-      description: e.log.description,
-      duration: e.log.duration,
-      date: e.log.date
-    }
-  });
-  console.log( log );
-
-  res.json({
-    _id: data._id,
-    username: data.username,
-    from,
-    to,
-    limit,
-    count: data.count,
-    log
-  });
 
 });
 
