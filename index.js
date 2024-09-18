@@ -70,9 +70,7 @@ app.post('/api/users', (req, res) => {
 
 app.post('/api/users/:_id/exercises', (req, res) => {
   const _id = req.params._id;
-  const date = new Date(req.body.date);
-  const description = req.body.description;
-  const duration = +req.body.duration;
+  const { date, description, duration} = req.body;
 
   User.findById({ _id }).then(( userData ) => {
     if( !userData ){
@@ -84,7 +82,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
       userId: _id,
       description,
       duration,
-      date
+      date: date ? new Date(date) : new Date()
     });
 
     newExercise.save().then(( exerciseData ) => {
@@ -101,9 +99,50 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 });
 
 app.get('/api/users/:_id/logs', async (req, res) => {
+  const { limit, from, to } = req.query;
+  const _id = req.params._id;
+  
+  let dateObj = {};
+  let filter = {
+    userId: _id,
+  };
+
+  User.findById({ _id }).then(( userData ) => {
+    if( !userData ){
+      res.send("Could not find the user.");
+      return;
+    }
+
+    if( from ) dateObj["$gte"] = new Date(from);
+    if( to ) dateObj["$lte"] = new Date(to);
+    if( from || to ) filter.date = dateObj;
+
+    Exercise.find( filter ).limit( +limit ?? 500 ).then(( exerciseData ) => {
+      const log = exerciseData.map( e => {
+        return {
+          description: e.description,
+          duration: e.duration,
+          date: e.date.toDateString()
+        }
+      });
+      console.log( exerciseData );
+      console.log( log );
+
+      res.json({
+        _id: userData._id,
+        username: userData.username,
+        from,
+        to,
+        limit,
+        count: log.length - 1,
+        log
+      });
+
+    }).catch(( err ) => console.log( err ));
+
+  }).catch(( err ) => console.log( err ));
 
 });
-
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
